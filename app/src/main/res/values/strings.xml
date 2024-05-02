@@ -1,0 +1,11 @@
+<resources>
+    <string name="app_name">Custom Pre Order</string>
+    <string name="title_activity_menu">Menu</string>
+    <string name="tab_text_1">Tab 1</string>
+    <string name="tab_text_2">Tab 2</string>
+    <string name="title_activity_login">Login</string>
+    <string name="welcome">Welcome!</string>
+    <string name="title_home">Home</string>
+    <string name="title_dashboard">Dashboard</string>
+    <string name="title_settings">Settings</string>
+</resources>
