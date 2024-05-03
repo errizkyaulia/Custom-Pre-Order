@@ -8,18 +8,18 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
+import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
 import com.example.custompreorder.Login
 import com.example.custompreorder.databinding.FragmentSettingsBinding
+import com.example.custompreorder.ui.profile.ProfileActivity
 import com.google.firebase.auth.FirebaseAuth
 
 class SettingsFragment : Fragment() {
 
     private var _binding: FragmentSettingsBinding? = null
 
-    // This property is only valid between onCreateView and
-    // onDestroyView.
     private val binding get() = _binding!!
 
     override fun onCreateView(
@@ -33,9 +33,14 @@ class SettingsFragment : Fragment() {
         _binding = FragmentSettingsBinding.inflate(inflater, container, false)
         val root: View = binding.root
 
-        val textView: TextView = binding.textNotifications
+        val textView: TextView = binding.UsernameSettings
         settingsViewModel.text.observe(viewLifecycleOwner) {
             textView.text = it
+        }
+
+        binding.profileEditor.setOnClickListener {
+            val intent = Intent(requireContext(), ProfileActivity::class.java)
+            startActivity(intent)
         }
 
         binding.logout.setOnClickListener {
@@ -66,9 +71,15 @@ class SettingsFragment : Fragment() {
     }
 
     private fun logout() {
+        // Logout from Firebase
         FirebaseAuth.getInstance().signOut()
-        val intent = Intent(requireContext(), Login::class.java)
-        startActivity(intent)
-        requireActivity().finish()
+        if (FirebaseAuth.getInstance().currentUser == null) {
+            // Show a toast message
+            Toast.makeText(requireContext(), "Logged out successfully", Toast.LENGTH_SHORT).show()
+            // Navigate to the login screen
+            val intent = Intent(requireContext(), Login::class.java)
+            startActivity(intent)
+            requireActivity().finish()
+        }
     }
 }

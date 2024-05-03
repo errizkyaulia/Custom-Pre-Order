@@ -1,6 +1,5 @@
 package com.example.custompreorder
 
-import android.animation.AnimatorInflater
 import android.annotation.SuppressLint
 import android.content.Intent
 import android.os.Bundle
@@ -86,6 +85,11 @@ class Login : AppCompatActivity() {
                     // Sign in success, update UI with the signed-in user's information
                     Log.d(TAG, "signInWithEmail:success")
                     val user = auth.currentUser
+                    Toast.makeText(
+                        baseContext,
+                        "Welcome ${user?.email}",
+                        Toast.LENGTH_SHORT,
+                    ).show()
                     val intent = Intent(this, Menu::class.java)
                     startActivity(intent)
                     finish()

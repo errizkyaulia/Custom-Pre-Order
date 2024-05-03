@@ -4,6 +4,7 @@ import android.content.ContentValues.TAG
 import android.content.Intent
 import android.os.Bundle
 import android.util.Log
+import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
@@ -48,10 +49,12 @@ class ForgotPassword : AppCompatActivity() {
             .addOnCompleteListener { task ->
                 if (task.isSuccessful) {
                     Log.d(TAG, "Email sent.")
+                    Toast.makeText(this, "Email sent to $emailAddress", Toast.LENGTH_SHORT).show()
                     val intent = Intent(this, Login::class.java)
                     startActivity(intent)
                 } else {
                     Log.w(TAG, "Failed to send email.", task.exception)
+                    Toast.makeText(this, "Failed to send email.", Toast.LENGTH_SHORT).show()
                     binding.ResetPassword.isEnabled = true
                 }
             }
