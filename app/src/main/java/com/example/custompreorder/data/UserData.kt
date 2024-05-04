@@ -18,13 +18,13 @@ class UserData {
     }
 
     // Fungsi untuk mendapatkan ProfileFragment Picture dari Firestore
-    fun getProfilePicture(userId: String): String? {
+    fun getProfilePictureUrl(userId: String): String? {
         val db = FirebaseFirestore.getInstance()
         val docRef = db.collection("users").document(userId)
         var profilePicture: String? = null
         docRef.get().addOnSuccessListener { document ->
             if (document != null) {
-                profilePicture = document.getString("profilepicture")
+                profilePicture = document.getString("profilePictureUrl")
             }
         }
         return profilePicture

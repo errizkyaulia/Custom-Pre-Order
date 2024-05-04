@@ -9,6 +9,7 @@ import android.graphics.drawable.VectorDrawable
 import android.os.Bundle
 import android.util.Log
 import android.view.View
+import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
@@ -21,6 +22,7 @@ import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.storage.FirebaseStorage
 import java.io.ByteArrayOutputStream
+import com.bumptech.glide.Glide
 
 @Suppress("DEPRECATION")
 class ProfileActivity : AppCompatActivity() {
@@ -51,9 +53,6 @@ class ProfileActivity : AppCompatActivity() {
         // UserData is authenticated, proceed with inflating layout and setting up views
         binding = ActivityProfileBinding.inflate(layoutInflater)
         setContentView(binding.root)
-
-//        // Menset ProfileFragment Picture dari Database
-//        binding.profilePicture.setImageURI(userData.getCurrentUserPhotoUrl())
 
         // Set up click listener for the profile pictureww
         binding.profilePicture.setOnClickListener(
@@ -171,35 +170,40 @@ class ProfileActivity : AppCompatActivity() {
                 if (document.exists()) {
                     // Jika dokumen ada, set data pengguna ke tampilan
                     val userData = document.toObject(UserData::class.java)
-                    // Set profile picture jika tidak null
-//                    userData?.profilePictureUrl?.let { url ->
-//                        // Implementasi untuk menampilkan gambar profil dari URL ke ImageView
-//                        // Misalnya menggunakan Glide atau Picasso
-//                        Glide.with(this).load(url).into(binding.profilePicture)
-//                    }
+                    // Set profile picture
+                    val profilePic: ImageView = binding.profilePicture
+                    // Mendapatkan URL picture
+                    val profilePictureUrl = document.getString("profilePictureUrl")
 
-                    // Set nama lengkap, jika null set ke "Harap Di ISI"
+                    // Jika URL picture tidak kosong, tampilkan gambar
+                    if (!profilePictureUrl.isNullOrEmpty()) {
+                        Glide.with(this)
+                            .load(profilePictureUrl)
+                            .into(profilePic)
+                    } else {
+                        // Jika URL picture kosong, tampilkan gambar default
+                    }
+
+                    // Set nama lengkap, address, phonenumber jika null set ke "Harap Di ISI"
                     val name : TextView = binding.editName
-                    if (userData != null) {
-                        name.text = userData.getFullName(uid)
-                    } else {
-                        name.text = "Harap Di ISI"
-                    }
-
-                    // Set alamat, jika null set ke "Harap Di ISI"
                     val address : TextView = binding.editAddress
-                    if (userData != null) {
-                        address.text = userData.getAddress(uid)
-                    } else {
-                        address.text = "Harap Di ISI"
-                    }
-
-                    // Set nomor telepon, jika null set ke "Harap Di ISI"
                     val phoneNumber : TextView = binding.editTextPhone
-                    if (userData != null) {
-                        phoneNumber.text = userData.getPhoneNumber(uid)
+
+                    // lakukan pengecekan apabila dokumen kosong
+                    if (document.getString("fullname") == null) {
+                        name.text = "Harap Di ISI"
                     } else {
+                        name.text = document.getString("fullname")
+                    }
+                    if (document.getString("address") == null) {
+                        address.text = "Harap Di ISI"
+                    } else {
+                        address.text = document.getString("address")
+                    }
+                    if (document.getString("phonenumber") == null) {
                         phoneNumber.text = "Harap Di ISI"
+                    } else {
+                        phoneNumber.text = document.getString("phonenumber")
                     }
 
                 } else {
