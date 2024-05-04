@@ -1,6 +1,5 @@
 package com.example.custompreorder
 
-import android.content.ContentValues.TAG
 import android.content.Intent
 import android.os.Bundle
 import android.util.Log
@@ -13,6 +12,7 @@ import com.example.custompreorder.databinding.ActivitySignupBinding
 import com.google.firebase.Firebase
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.auth
+import com.google.firebase.firestore.firestore
 
 class Signup : AppCompatActivity() {
 
@@ -22,6 +22,9 @@ class Signup : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+
+        // Disabled action bar
+        supportActionBar?.hide()
 
         // Initialize Firebase Auth
         auth = Firebase.auth
@@ -73,6 +76,36 @@ class Signup : AppCompatActivity() {
                     // Sign in success, update UI with the signed-in user's information
                     Log.d(TAG, "createUserWithEmail:success")
                     val user = auth.currentUser
+
+                    // Store new user in firestore database
+                    val db = Firebase.firestore
+                    val newUser = hashMapOf(
+                        "picture" to "",
+                        "fullname" to "",
+                        "address" to "",
+                        "phonenumber" to ""
+                    )
+
+                    // Add new user to firestore database
+                    db.collection("users")
+                        .document(user?.uid!!)
+                        .set(newUser)
+                        .addOnSuccessListener {
+                            // Send verification email
+                            user.sendEmailVerification()
+                                .addOnSuccessListener {
+                                    // Show success message
+                                    Toast.makeText(this, "Verification email sent to: ${user.email}", Toast.LENGTH_SHORT).show()
+                                    Log.d(TAG, "Verification email sent to: ${user.email}")
+                                }
+                            Log.d(TAG, "User added to firestore database") }
+                        .addOnFailureListener { e ->
+                            // Show error message
+                            Toast.makeText(this, "Failed to Store User Data", Toast.LENGTH_SHORT).show()
+                            Log.w(TAG, "Error adding user to firestore database", e) }
+
+
+                    // Navigate to login page
                     val intent = Intent(this, Login::class.java)
                     startActivity(intent)
                     finish()

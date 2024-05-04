@@ -30,6 +30,9 @@ class MainActivity : AppCompatActivity() {
         auth = Firebase.auth
         setContentView(R.layout.activity_main)
 
+        // Disable action bar
+        supportActionBar?.hide()
+
         // Tambahkan penanganan window insets
         setupWindowInsets()
 

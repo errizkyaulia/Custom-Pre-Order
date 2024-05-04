@@ -25,6 +25,9 @@ class Login : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
+        // Disabled action bar
+        supportActionBar?.hide()
+
         // Initialize Firebase Auth
         auth = Firebase.auth
 
