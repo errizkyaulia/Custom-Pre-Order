@@ -1,6 +1,8 @@
 package com.example.custompreorder.ui.profile
 
 import android.app.Activity
+import android.app.AlertDialog
+import android.content.ContentValues.TAG
 import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.Canvas
@@ -23,12 +25,16 @@ import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.storage.FirebaseStorage
 import java.io.ByteArrayOutputStream
 import com.bumptech.glide.Glide
+import com.example.custompreorder.R
+import com.google.firebase.Firebase
+import com.google.firebase.auth.auth
+import kotlinx.coroutines.*
 
 @Suppress("DEPRECATION")
 class ProfileActivity : AppCompatActivity() {
 
     private lateinit var userData: UserData
-
+    private var saveJob: Job? = null // Job untuk menyimpan referensi pekerjaan
     private lateinit var binding: ActivityProfileBinding
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -64,17 +70,100 @@ class ProfileActivity : AppCompatActivity() {
 
         val userEmailView: TextView = binding.emailProfile
         userEmailView.text = currentUser.email
+        // Agar text tidak dapat di edit user
+        userEmailView.isEnabled = false
 
         // Load user data from Firestore
         loadUserData(currentUser.uid)
 
         binding.saveProfile.setOnClickListener {
-            // Handle save profile button click to update user data in Firestore
+            // Handle save profile changePassword click to update user data in Firestore
             saveUpdatedUserData()
+        }
+
+        binding.changePassword.setOnClickListener {
+            // Handle changePassword click to send email reset password
+            val email = binding.emailProfile.text.toString()
+            sendResetPassword(email)
+        }
+
+        binding.reqDeleteAccount.setOnClickListener {
+            // Handle save profile changePassword click to update user data in Firestore
+            deleteAccount()
         }
     }
 
+    private fun sendResetPassword(email: String) {
+        binding.changePassword.isEnabled = false
+        binding.progressBar3.visibility = View.VISIBLE
+
+        // TODO: Implement your reset password logic here
+        val emailAddress = email
+
+        Firebase.auth.sendPasswordResetEmail(emailAddress)
+            .addOnCompleteListener { task ->
+                // Sembunyikan loading screen
+                binding.progressBar3.visibility = View.GONE
+                if (task.isSuccessful) {
+                    // Tampilkan dalam log
+                    Log.d("ResetPasswordActivity", "Password reset email sent to $emailAddress")
+                    Toast.makeText(this, "Email sent to $emailAddress", Toast.LENGTH_SHORT).show()
+
+                    // Tampilkan alert dialog
+                    val alertDialogBuilder = AlertDialog.Builder(this)
+                    alertDialogBuilder.setTitle("Success")
+                    alertDialogBuilder.setMessage("Password reset email sent to\n$emailAddress")
+                    alertDialogBuilder.setPositiveButton("OK") { dialog, _ ->
+                        dialog.dismiss()
+                    }
+                    val alertDialog = alertDialogBuilder.create()
+                    alertDialog.show()
+
+                    binding.changePassword.isEnabled = true
+                } else {
+                    // Tampilkan dalam log
+                    Log.e(
+                        "ResetPasswordActivity",
+                        "Failed to send password reset email",
+                        task.exception
+                    )
+                    Toast.makeText(this, "Failed to send email.", Toast.LENGTH_SHORT).show()
+                    binding.changePassword.isEnabled = true
+                }
+            }
+            .addOnFailureListener { exception ->
+                binding.progressBar3.visibility = View.GONE
+                Log.e("ResetPasswordActivity", "Exception occurred", exception)
+                Toast.makeText(this, "An error occurred. Please try again later.", Toast.LENGTH_SHORT).show()
+                binding.changePassword.isEnabled = true
+            }
+    }
+
     private fun saveUpdatedUserData() {
+        // Nonaktifkan tombol
+        binding.saveProfile.isEnabled = false
+
+        // Tampilkan loading screen
+        binding.progressBar3.visibility = View.VISIBLE
+
+        // Batalkan pekerjaan sebelumnya (jika ada)
+        saveJob?.cancel()
+
+        // Mulai pekerjaan baru
+        saveJob = CoroutineScope(Dispatchers.Main).launch {
+            // Lakukan pekerjaan di luar UI thread
+            withContext(Dispatchers.IO) {
+                // Panggil fungsi untuk menyimpan data pengguna
+                saveUserDataAndUpdateUI()
+            }
+
+            // Sembunyikan loading screen dan aktifkan tombol kembali di UI thread
+            binding.progressBar3.visibility = View.GONE
+            binding.saveProfile.isEnabled = true
+        }
+    }
+
+    private fun saveUserDataAndUpdateUI() {
         val db = FirebaseFirestore.getInstance()
         val currentUser = FirebaseAuth.getInstance().currentUser
         val uid = currentUser?.uid ?: return
@@ -90,12 +179,12 @@ class ProfileActivity : AppCompatActivity() {
             "profilePictureUrl" to ""
         )
 
-        // If a profile picture is set, convert it to Bitmap first
+        // Jika gambar profil diatur, konversi ke Bitmap terlebih dahulu
         binding.profilePicture.drawable?.let { drawable ->
             val bitmap = when (drawable) {
                 is BitmapDrawable -> drawable.bitmap
                 is VectorDrawable -> {
-                    // If it's a VectorDrawable, convert it to Bitmap
+                    // Jika itu VectorDrawable, konversi ke Bitmap
                     val bitmap = Bitmap.createBitmap(
                         drawable.intrinsicWidth,
                         drawable.intrinsicHeight,
@@ -111,7 +200,7 @@ class ProfileActivity : AppCompatActivity() {
 
             bitmap?.let {
                 uploadProfilePicture(it) { profilePictureUrl ->
-                    // Once the profile picture is uploaded, save its URL along with other user data
+                    // Setelah gambar profil diunggah, simpan URL-nya bersama data pengguna lainnya
                     userData["profilePictureUrl"] = profilePictureUrl
                     saveUserData(db, uid, userData)
                 }
@@ -152,7 +241,7 @@ class ProfileActivity : AppCompatActivity() {
         db.collection("users").document(uid)
             .set(userData)
             .addOnSuccessListener {
-                showToast("ProfileFragment updated successfully")
+                showToast("Your Profile has been updated")
             }
             .addOnFailureListener { e ->
                 showToast("Failed to update profile: ${e.message}")
@@ -160,16 +249,20 @@ class ProfileActivity : AppCompatActivity() {
     }
 
     private fun loadUserData(uid: String) {
-        // Implement your logic to load user data from Firestore
+        // Tampilkan loading screen
+        binding.progressBar3.visibility = View.VISIBLE
+
         // Load user data from Firestore
         val db = FirebaseFirestore.getInstance()
         val docRef = db.collection("users").document(uid)
 
+        // Mendapatkan dokumen
         docRef.get()
             .addOnSuccessListener { document ->
+                // Sembunyikan loading screen
+                binding.progressBar3.visibility = View.GONE
+                // Cek apakah dokumen ada
                 if (document.exists()) {
-                    // Jika dokumen ada, set data pengguna ke tampilan
-                    val userData = document.toObject(UserData::class.java)
                     // Set profile picture
                     val profilePic: ImageView = binding.profilePicture
                     // Mendapatkan URL picture
@@ -191,26 +284,26 @@ class ProfileActivity : AppCompatActivity() {
 
                     // lakukan pengecekan apabila dokumen kosong
                     if (document.getString("fullname") == null) {
-                        name.text = "Harap Di ISI"
+                        "Harap Di ISI".also { name.text = it }
                     } else {
                         name.text = document.getString("fullname")
                     }
                     if (document.getString("address") == null) {
-                        address.text = "Harap Di ISI"
+                        "Harap Di ISI".also { address.text = it }
                     } else {
                         address.text = document.getString("address")
                     }
                     if (document.getString("phonenumber") == null) {
-                        phoneNumber.text = "Harap Di ISI"
+                        "Harap Di ISI".also { phoneNumber.text = it }
                     } else {
                         phoneNumber.text = document.getString("phonenumber")
                     }
 
                 } else {
                     showToast("Please fill in your profile data")
-                    binding.editName.setText("Harap Di ISI")
-                    binding.editAddress.setText("Harap Di ISI")
-                    binding.editTextPhone.setText("Harap Di ISI")
+                    binding.editName.setText(getString(R.string.no_data_found))
+                    binding.editAddress.setText(getString(R.string.no_data_found))
+                    binding.editTextPhone.setText(getString(R.string.no_data_found))
                 }
             }
             .addOnFailureListener { exception ->
@@ -241,6 +334,74 @@ class ProfileActivity : AppCompatActivity() {
 
     private fun showToast(message: String) {
         Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
+    }
+
+    private fun deleteAccount() {
+        val user = Firebase.auth.currentUser
+
+        user?.let {
+            // Membuat dialog konfirmasi sebelum menghapus akun
+            val builder = AlertDialog.Builder(this)
+            builder.setTitle("Confirmation")
+                .setMessage("Are you sure you want to delete your account?")
+                .setPositiveButton("Yes") { _, _ ->
+                    // User menekan tombol "Yes", hapus akun
+                    deleteUserAccount()
+                }
+                .setNegativeButton("No") { dialog, _ ->
+                    // User menekan tombol "No", tutup dialog
+                    dialog.dismiss()
+                }
+                .show()
+        }
+    }
+
+    private fun deleteUserAccount() {
+        val user = Firebase.auth.currentUser
+
+        user?.delete()
+            ?.addOnCompleteListener { task ->
+                if (task.isSuccessful) {
+                    // Hapus data pengguna dari Firestore
+                    deleteUserDataFromFirestore(user.uid)
+                    // Hapus gambar profil dari Firebase Storage
+                    deleteProfilePictureFromStorage(user.uid)
+
+                    Log.d(TAG, "Successfully deleted user account")
+                    showToast("Your account has been deleted")
+                    val intent = Intent(this, Login::class.java)
+                    startActivity(intent)
+                    finish()
+                } else {
+                    Log.e(TAG, "Failed to delete user account: ${task.exception?.message}")
+                    showToast("Failed to delete user account: ${task.exception?.message}")
+                }
+            }
+    }
+
+    private fun deleteUserDataFromFirestore(userId: String) {
+        val db = FirebaseFirestore.getInstance()
+        db.collection("users").document(userId)
+            .delete()
+            .addOnSuccessListener {
+                Log.d(TAG, "User data deleted from Firestore.")
+            }
+            .addOnFailureListener { e ->
+                Log.e(TAG, "Failed to delete user data from Firestore: ${e.message}")
+            }
+    }
+
+    private fun deleteProfilePictureFromStorage(userId: String) {
+        val storageRef = FirebaseStorage.getInstance().reference
+        val profilePicRef = storageRef.child("profile_pictures/$userId.jpg")
+
+        profilePicRef.delete()
+            .addOnSuccessListener {
+                Log.d(TAG, "Profile picture deleted from Firebase Storage.")
+            }
+            .addOnFailureListener { e ->
+                Log.e(TAG, "Failed to delete profile picture from Firebase Storage: ${e.message}")
+            }
     }
 
 }
