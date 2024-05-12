@@ -181,29 +181,39 @@ class CheckoutOrder : AppCompatActivity() {
 
         val initPriceText = binding.totalCekoutPrice.text.toString()
         val initPrice = initPriceText.replace("Rp. ", "").toDoubleOrNull() ?: return
+        val productPrice = binding.productPrice.text.toString().replace("Rp. ", "").toDoubleOrNull() ?: return
 
         // Create a new transaction item
-        val transactionItem = TransactionItem(product, size.toString(), quantity)
+        val transactionItem = TransactionItem(product, productPrice , size.toString(), quantity)
+
+        // Get user details from UI elements
+        val name = binding.cekoutFullName.text.toString()
+        val phone = binding.cekoutPhoneNumber.text.toString()
+        val address = binding.cekoutAddress.text.toString()
+        val userDetails = UserDetails(name, address, phone)
 
         // Create a list of transaction items (assuming only one item for now)
         val productList = listOf(transactionItem)
+
+        val userInfo = listOf(userDetails)
 
         // Generate a new transaction ID
         val transactionId = db.collection("transactions").document().id
 
         // Create a new transaction object
-        val transactionData = hashMapOf(
+        val transactionData = mapOf(
             "user_id" to uid,
             "date" to Timestamp.now(),
             "total_price" to initPrice,
-            "items" to productList.map { item ->
-                hashMapOf(
-                    "product_id" to item.productId,
-                    "size" to item.size,
-                    "quantity" to item.quantity,
-                    "designUrl" to "" // Empty for now, will be updated later if there's a custom image
-                )
-            },
+            "product_id" to product,
+            "product_name" to binding.productName.text,
+            "product_price" to productPrice,
+            "size" to size,
+            "quantity" to quantity,
+            "designUrl" to "", // Empty for now, will be updated later if there's a custom image
+            "name" to name,
+            "phone" to phone,
+            "address" to address,
             "status" to "Ordered"
         )
 
@@ -222,9 +232,7 @@ class CheckoutOrder : AppCompatActivity() {
                         uploadCheckOutImage(customDesignBitmap, transactionId) { imageUrl ->
                             // Update the transaction with the custom design URL
                             db.collection("transactions").document(transactionId)
-                                .update("items.0.designUrl", imageUrl,
-                                    "items.0.size", size,
-                                    "items.0.quantity", quantity)
+                                .update("designUrl", imageUrl)
                                 .addOnSuccessListener {
                                     Log.d(TAG, "Custom design URL updated successfully")
                                     val intent = Intent(this, Menu::class.java)
@@ -256,7 +264,14 @@ class CheckoutOrder : AppCompatActivity() {
 
     private data class TransactionItem(
         val productId: String,
+        val productPrice: Double,
         val size: String,
         val quantity: Int
+    )
+
+    private data class UserDetails(
+        val name: String,
+        val phone: String,
+        val address: String
     )
 }

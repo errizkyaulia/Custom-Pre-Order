@@ -1,6 +1,7 @@
 package com.example.custompreorder.ui.dashboard
 
 import android.content.ContentValues.TAG
+import android.content.Intent
 import android.os.Bundle
 import android.util.Log
 import android.view.LayoutInflater
@@ -9,35 +10,51 @@ import android.view.ViewGroup
 import android.widget.TextView
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
+import androidx.recyclerview.widget.LinearLayoutManager
+import com.example.custompreorder.data.OrderAdapter
+import com.example.custompreorder.data.ProductAdapter
 import com.example.custompreorder.databinding.FragmentDashboardBinding
+import com.example.custompreorder.databinding.FragmentHomeBinding
+import com.example.custompreorder.ui.home.Cart
+import com.example.custompreorder.ui.home.HomeViewModel
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
+import java.util.ArrayList
 
 class DashboardFragment : Fragment() {
 
     private var _binding: FragmentDashboardBinding? = null
-
-    // This property is only valid between onCreateView and
-    // onDestroyView.
     private val binding get() = _binding!!
+    private lateinit var dashboardViewModel: DashboardViewModel
+    private lateinit var orderAdapter: OrderAdapter
 
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View {
-        val dashboardViewModel =
-            ViewModelProvider(this).get(DashboardViewModel::class.java)
-
         _binding = FragmentDashboardBinding.inflate(inflater, container, false)
         val root: View = binding.root
 
-        val textView: TextView = binding.textDashboard
-        dashboardViewModel.text.observe(viewLifecycleOwner) {
-            textView.text = it
-            val userId = FirebaseAuth.getInstance().currentUser?.uid
-            loadTransactionsByUserId(userId?:"")
+        dashboardViewModel = ViewModelProvider(this).get(DashboardViewModel::class.java)
+        orderAdapter = OrderAdapter(requireContext(), ArrayList())
+
+        binding.recyclerView.apply {
+            layoutManager = LinearLayoutManager(requireContext())
+            adapter = orderAdapter
         }
+
+        dashboardViewModel.orderList.observe(viewLifecycleOwner) { orderList ->
+            orderList?.let {
+                orderAdapter.updateOrderList(it)
+                binding.swipeRefreshLayout.isRefreshing = false
+            }
+        }
+
+        binding.swipeRefreshLayout.setOnRefreshListener {
+            dashboardViewModel.refreshOrderList()
+        }
+
         return root
     }
 
@@ -45,23 +62,4 @@ class DashboardFragment : Fragment() {
         super.onDestroyView()
         _binding = null
     }
-
-    private fun loadTransactionsByUserId(userId: String) {
-        val db = FirebaseFirestore.getInstance()
-        val transactionsRef = db.collection("transactions")
-
-        transactionsRef.whereEqualTo("user_id", userId)
-            .get()
-            .addOnSuccessListener { documents ->
-                for (document in documents) {
-                    Log.d(TAG, "${document.id} => ${document.data}")
-                    // Di sini Anda dapat memproses data transaksi sesuai kebutuhan aplikasi Anda
-                }
-            }
-            .addOnFailureListener { exception ->
-                Log.w(TAG, "Error getting documents: ", exception)
-                // Di sini Anda dapat menangani kegagalan dalam memuat data transaksi
-            }
-    }
-
 }
