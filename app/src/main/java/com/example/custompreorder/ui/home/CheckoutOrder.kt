@@ -222,7 +222,9 @@ class CheckoutOrder : AppCompatActivity() {
                         uploadCheckOutImage(customDesignBitmap, transactionId) { imageUrl ->
                             // Update the transaction with the custom design URL
                             db.collection("transactions").document(transactionId)
-                                .update("items.0.designUrl", imageUrl)
+                                .update("items.0.designUrl", imageUrl,
+                                    "items.0.size", size,
+                                    "items.0.quantity", quantity)
                                 .addOnSuccessListener {
                                     Log.d(TAG, "Custom design URL updated successfully")
                                     val intent = Intent(this, Menu::class.java)
