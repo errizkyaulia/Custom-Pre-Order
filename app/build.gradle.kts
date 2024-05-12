@@ -54,7 +54,9 @@ android {
 dependencies {
 
     implementation("com.github.bumptech.glide:glide:4.12.0")
+    implementation(libs.androidx.recyclerview)
     annotationProcessor("com.github.bumptech.glide:compiler:4.12.0")
+    implementation("androidx.swiperefreshlayout:swiperefreshlayout:1.1.0")
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
     implementation(libs.material)
