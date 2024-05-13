@@ -37,7 +37,22 @@ class OrderAdapter(private val mContext: Context, private var mOrderList: List<O
         val totalPriceVal = "Rp. " + orderItem.total_price
         holder.totalPrice.text = totalPriceVal
         holder.status.text = orderItem.status
-
+        holder.status.setTextColor(
+            when (orderItem.status) {
+                "Ordered" -> {
+                    mContext.resources.getColor(R.color.blue)
+                }
+                "accepted" -> {
+                    mContext.resources.getColor(R.color.green)
+                }
+                "Done" -> {
+                    mContext.resources.getColor(R.color.black)
+                }
+                else -> {
+                    mContext.resources.getColor(R.color.red)
+                }
+            }
+        )
 
         val imgUrl = orderItem.designUrl
         // Load image from designUrl if not empty, otherwise load default image

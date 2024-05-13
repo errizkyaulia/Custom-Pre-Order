@@ -65,13 +65,12 @@ class CheckoutOrder : AppCompatActivity() {
 
                     val chosenSize = "Chosen Size: $productSize"
 
-
                     binding.chosenSize.text = chosenSize
                     binding.productPrice.text = price
                     binding.qtyProduct.text = productQty
                     binding.totalCekoutPrice.text = totalPrice
 
-                    val imageUrl = intent.getStringExtra("customDesignUrl") // Dapatkan URL gambar kustom dari intent
+                    val imageUrl = intent.getStringExtra("customDesignUrl") // Dapatkan URL gambar kustom dari intent Costumize Order
                     if (imageUrl != null) {
                         val costume = "$name With Custom Design"
                         binding.productName.text = costume
@@ -157,8 +156,6 @@ class CheckoutOrder : AppCompatActivity() {
     private fun purchase(product: String) {
         // Get current user ID
         val uid = FirebaseAuth.getInstance().currentUser?.uid
-            ?: // Handle the case where the user is not authenticated
-            return
 
         // Get Firestore instance
         val db = FirebaseFirestore.getInstance()
@@ -175,6 +172,7 @@ class CheckoutOrder : AppCompatActivity() {
         val name = binding.cekoutFullName.text.toString()
         val phone = binding.cekoutPhoneNumber.text.toString()
         val address = binding.cekoutAddress.text.toString()
+        val notes = binding.editNotes.text.toString()
 
         // Generate a new transaction ID
         val transactionId = db.collection("transactions").document().id
@@ -193,8 +191,11 @@ class CheckoutOrder : AppCompatActivity() {
             "name" to name,
             "phone" to phone,
             "address" to address,
+            "notes" to notes,
             "status" to "Ordered"
         )
+        // LOG transactionData
+        Log.d(TAG, "Transaction Data: $transactionData")
 
         // Add the transaction data to Firestore
         db.collection("transactions").document(transactionId)
@@ -213,10 +214,20 @@ class CheckoutOrder : AppCompatActivity() {
                             db.collection("transactions").document(transactionId)
                                 .update("designUrl", imageUrl)
                                 .addOnSuccessListener {
+                                    // Remove the product from the cart
+                                    val docCart = intent.getStringExtra("documentId")
+                                    if (docCart != null) {
+                                        removeCart(docCart)
+                                    }
+                                    // Remove temporary design image
+                                    val tempDesignImage = intent.getStringExtra("customDesignUrl")
+                                    if (tempDesignImage != null) {
+                                        removeImage(tempDesignImage)
+                                    }
                                     Log.d(TAG, "Custom design URL updated successfully")
-                                    val intent = Intent(this, Menu::class.java)
-                                    //intent.putExtra("transactionId", transactionId)
-                                    startActivity(intent)
+                                    Toast.makeText(this, "Transaction with Costume Image added successfully", Toast.LENGTH_SHORT).show()
+                                    val intentMenu = Intent(this, Menu::class.java)
+                                    startActivity(intentMenu)
                                     finish()
                                 }
                                 .addOnFailureListener { e ->
@@ -227,9 +238,15 @@ class CheckoutOrder : AppCompatActivity() {
                         finish()
                     }
                 } else {
-                    val intent = Intent(this, Menu::class.java)
+                    // Remove the product from the cart
+                    val docCart = intent.getStringExtra("documentId")
+                    if (docCart != null) {
+                        removeCart(docCart)
+                    }
+                    Toast.makeText(this, "Transaction added successfully", Toast.LENGTH_SHORT).show()
+                    val intentMenu = Intent(this, Menu::class.java)
                     //intent.putExtra("transactionId", transactionId)
-                    startActivity(intent)
+                    startActivity(intentMenu)
                     finish()
                 }
             }
@@ -238,6 +255,30 @@ class CheckoutOrder : AppCompatActivity() {
                 // Handle the error appropriately
                 Toast.makeText(this, "Error adding transaction", Toast.LENGTH_SHORT).show()
                 Log.e(TAG, "Error adding transaction", e)
+            }
+    }
+
+    private fun removeCart(docCart: String) {
+        val db = FirebaseFirestore.getInstance()
+        db.collection("cart").document(docCart)
+            .delete()
+            .addOnSuccessListener {
+                Log.d(TAG, "DocumentSnapshot successfully deleted!")
+            }
+            .addOnFailureListener { e ->
+                Log.w(TAG, "Error deleting document", e)
+                Toast.makeText(this, "Sorry couldn't remove product from your cart", Toast.LENGTH_SHORT).show()
+            }
+    }
+
+    private fun removeImage(tempDesignImage: String) {
+        val storageRef = FirebaseStorage.getInstance().getReferenceFromUrl(tempDesignImage)
+        storageRef.delete()
+            .addOnSuccessListener {
+                Log.d(TAG, "Image deleted successfully")
+            }
+            .addOnFailureListener { e ->
+                Log.e(TAG, "Error deleting image", e)
             }
     }
 }

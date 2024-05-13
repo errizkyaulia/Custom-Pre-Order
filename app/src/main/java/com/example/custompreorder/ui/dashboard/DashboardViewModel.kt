@@ -32,6 +32,7 @@ class DashboardViewModel : ViewModel() {
                 for (document in documents) {
                     Log.d(ContentValues.TAG, "${document.id} => ${document.data}")
                     val orderItem = document.toObject(OrderItem::class.java)
+                        .copy(orderId = document.id)
                     orderItemList.add(orderItem)
                 }
                 _orderList.value = orderItemList

@@ -14,6 +14,9 @@ class Cart : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         binding = ActivityCartBinding.inflate(layoutInflater)
         setContentView(binding.root)
+
+        // Set up the action bar name to Cart
+        supportActionBar?.hide()
         // Tampilkan Fragment Cart
         supportFragmentManager.beginTransaction()
             .replace(R.id.container, CartFragment())
