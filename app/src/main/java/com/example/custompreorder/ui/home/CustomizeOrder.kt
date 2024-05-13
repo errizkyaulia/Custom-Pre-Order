@@ -6,7 +6,6 @@ import android.content.ContentValues.TAG
 import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.drawable.BitmapDrawable
-import android.net.Uri
 import android.os.Bundle
 import android.util.Log
 import android.view.View
@@ -20,12 +19,11 @@ import androidx.core.widget.addTextChangedListener
 import com.bumptech.glide.Glide
 import com.example.custompreorder.R
 import com.example.custompreorder.databinding.ActivityCostomizeOrderBinding
+import com.google.firebase.Timestamp
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.storage.FirebaseStorage
 import java.io.ByteArrayOutputStream
-import java.io.File
-import java.io.FileOutputStream
 
 class CustomizeOrder : AppCompatActivity() {
     private lateinit var binding: ActivityCostomizeOrderBinding
@@ -344,66 +342,76 @@ class CustomizeOrder : AppCompatActivity() {
     }
 
     private fun addToCartWithDesign(productId: String?, userId: String?, quantity: Int, designURL: String, selectedSize: String) {
+        // Siapkan data yang akan dimasukkan
         val cartItem = hashMapOf(
+            "date" to Timestamp.now(),
+            "user_id" to userId,
+            "product_id" to productId,
             "size" to selectedSize,
             "quantity" to quantity,
             "designURL" to designURL
             // Tambahkan informasi lain yang diperlukan
         )
 
+        // Inisialisasi Firestore
         val db = FirebaseFirestore.getInstance()
-        val cartRef = db.collection("cart").document(userId ?: "")
-            .collection("items").document(productId ?: "")
-            .collection("sizes").document(selectedSize) // Menambahkan subkoleksi "sizes" dengan dokumen berdasarkan ukuran yang dipilih
+        val cartRef = db.collection("cart")
 
-        cartRef.get().addOnSuccessListener { documentSnapshot ->
-            if (documentSnapshot.exists()) {
-                // Produk dengan ukuran yang sama telah ditambahkan sebelumnya
-                val existingQuantity = documentSnapshot.getLong("quantity") ?: 0
-                AlertDialog.Builder(this)
-                    .setTitle("Product already exists")
-                    .setMessage("You have already added this product with the same size to the cart. Do you want to update the quantity? From $existingQuantity to $quantity")
-                    .setPositiveButton(android.R.string.yes) { _, _ ->
-                        // Perbarui jumlah produk yang sudah ada
-                        cartRef.update("quantity", quantity)
-                            .addOnSuccessListener {
-                                // Keranjang berhasil diperbarui
-                                Log.d("Firestore", "Cart updated successfully!")
-                                Toast.makeText(this, "Item added to cart", Toast.LENGTH_SHORT).show()
-                                // Pindahkan ke menu cart
-                                finish()
-                            }
-                            .addOnFailureListener { e ->
-                                // Gagal memperbarui keranjang
-                                Log.w("Firestore", "Error updating cart", e)
-                                Toast.makeText(this, "Failed to add item to cart", Toast.LENGTH_SHORT).show()
-                            }
-                    }
-                    .setNegativeButton(android.R.string.no) { _, _ ->
-                        // Pengguna memilih untuk tidak memperbarui jumlah, tidak ada tindakan yang diambil
-                    }
-                    .show()
-            } else {
-                // Produk belum ada di keranjang dengan ukuran yang sama, tambahkan baru
-                cartRef.set(cartItem)
-                    .addOnSuccessListener {
-                        // Produk berhasil ditambahkan ke keranjang
-                        Log.d("Firestore", "Item added to cart successfully!")
-                        Toast.makeText(this, "Item added to cart", Toast.LENGTH_SHORT).show()
-                        // Pindahkan ke menu cart
-                        finish()
-                    }
-                    .addOnFailureListener { e ->
-                        // Gagal menambahkan produk ke keranjang
-                        Log.w("Firestore", "Error adding item to cart", e)
-                        Toast.makeText(this, "Failed to add item to cart", Toast.LENGTH_SHORT).show()
-                    }
+        // Cari dokumen di Firestore dengan kondisi yang diberikan
+        cartRef.whereEqualTo("user_id", userId)
+            .whereEqualTo("product_id", productId)
+            .whereEqualTo("size", selectedSize)
+            .get()
+            .addOnSuccessListener { documents ->
+                if (documents.isEmpty) {
+                    // Jika tidak ada dokumen yang cocok, buat dokumen baru
+                    cartRef.add(cartItem)
+                        .addOnSuccessListener {
+                            Toast.makeText(this, "New Item added to cart", Toast.LENGTH_SHORT).show()
+                            Log.d(TAG, "DocumentSnapshot added with ID: ${it.id}")
+                            val intent = Intent(this, Cart::class.java)
+                            startActivity(intent)
+                            finish()
+                        }
+                        .addOnFailureListener { e ->
+                            // Gagal menambahkan dokumen baru
+                            Log.w(TAG, "Error adding document", e)
+                            Toast.makeText(this, "Failed to add item to cart", Toast.LENGTH_SHORT).show()
+                        }
+                } else {
+                    // Jika dokumen yang cocok ditemukan, perbarui jumlahnya
+                    val doc = documents.documents[0] // Ambil dokumen pertama yang cocok
+                    val currentQuantity = doc.getLong("quantity") ?: 0
+
+                    // Tampilkan dialog konfirmasi untuk memperbarui item
+                    val builder = AlertDialog.Builder(this)
+                    builder.setTitle("Update Cart Item")
+                        .setMessage("Do you want to update the quantity of this item? From: $currentQuantity to $quantity")
+                        .setPositiveButton("Yes") { _, _ ->
+                            // Pengguna menekan tombol Yes, lakukan pembaruan
+                            doc.reference.update(cartItem as Map<String, Any>)
+                                .addOnSuccessListener {
+                                    Toast.makeText(this, "Your cart has been updated", Toast.LENGTH_SHORT).show()
+                                    val intent = Intent(this, Cart::class.java)
+                                    startActivity(intent)
+                                    finish()
+                                }
+                                .addOnFailureListener { e ->
+                                    Toast.makeText(this, "Failed to update item quantity", Toast.LENGTH_SHORT).show()
+                                }
+                        }
+                        .setNegativeButton("No") { _, _ ->
+                            // Pengguna menekan tombol No, tidak lakukan apa-apa
+                            // Tidak perlu tindakan
+                        }
+                        .show()
+                }
             }
-        }.addOnFailureListener { e ->
-            // Gagal mendapatkan data dari Firestore
-            Log.w("Firestore", "Error getting cart item", e)
-            Toast.makeText(this, "Failed to add item to cart", Toast.LENGTH_SHORT).show()
-        }
+            .addOnFailureListener { e ->
+                // Gagal melakukan pencarian dokumen
+                Log.w(TAG, "Error getting documents: ", e)
+                Toast.makeText(this, "Failed to retrieve cart items", Toast.LENGTH_SHORT).show()
+            }
     }
 
     companion object {

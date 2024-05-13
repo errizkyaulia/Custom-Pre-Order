@@ -25,7 +25,7 @@ class OrderAdapter(private val mContext: Context, private var mOrderList: List<O
         val orderItem = mOrderList[position]
 
         // Set data to views
-        val holderQty = "Quantity: ${orderItem.quantity}"
+        val holderQty = "${orderItem.quantity} Qty"
         holder.qty.text = holderQty
         holder.productName.text = orderItem.product_name // Using directly from OrderItem
 
@@ -50,7 +50,7 @@ class OrderAdapter(private val mContext: Context, private var mOrderList: List<O
         } else {
             // Load default image from firestore
             val db = FirebaseFirestore.getInstance()
-                db.collection("products")
+            db.collection("products")
                 .document(orderItem.product_id)
                     .get()
                     .addOnSuccessListener { document ->

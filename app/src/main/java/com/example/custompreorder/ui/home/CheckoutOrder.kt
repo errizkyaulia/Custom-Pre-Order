@@ -98,16 +98,6 @@ class CheckoutOrder : AppCompatActivity() {
             }
     }
 
-    // Function to get nested price based on size
-    private fun DocumentSnapshot.getNestedPrice(size: String?): String? {
-        return if (size != null) {
-            val nestedData = this.get(size) as? Map<*, *>
-            nestedData?.get("price") as? String
-        } else {
-            null
-        }
-    }
-
     private fun loadUser() {
         // Load user data from Firestore
         val uid = FirebaseAuth.getInstance().currentUser?.uid
@@ -167,10 +157,8 @@ class CheckoutOrder : AppCompatActivity() {
     private fun purchase(product: String) {
         // Get current user ID
         val uid = FirebaseAuth.getInstance().currentUser?.uid
-        if (uid == null) {
-            // Handle the case where the user is not authenticated
+            ?: // Handle the case where the user is not authenticated
             return
-        }
 
         // Get Firestore instance
         val db = FirebaseFirestore.getInstance()
@@ -183,19 +171,10 @@ class CheckoutOrder : AppCompatActivity() {
         val initPrice = initPriceText.replace("Rp. ", "").toDoubleOrNull() ?: return
         val productPrice = binding.productPrice.text.toString().replace("Rp. ", "").toDoubleOrNull() ?: return
 
-        // Create a new transaction item
-        val transactionItem = TransactionItem(product, productPrice , size.toString(), quantity)
-
         // Get user details from UI elements
         val name = binding.cekoutFullName.text.toString()
         val phone = binding.cekoutPhoneNumber.text.toString()
         val address = binding.cekoutAddress.text.toString()
-        val userDetails = UserDetails(name, address, phone)
-
-        // Create a list of transaction items (assuming only one item for now)
-        val productList = listOf(transactionItem)
-
-        val userInfo = listOf(userDetails)
 
         // Generate a new transaction ID
         val transactionId = db.collection("transactions").document().id
@@ -261,17 +240,4 @@ class CheckoutOrder : AppCompatActivity() {
                 Log.e(TAG, "Error adding transaction", e)
             }
     }
-
-    private data class TransactionItem(
-        val productId: String,
-        val productPrice: Double,
-        val size: String,
-        val quantity: Int
-    )
-
-    private data class UserDetails(
-        val name: String,
-        val phone: String,
-        val address: String
-    )
 }
