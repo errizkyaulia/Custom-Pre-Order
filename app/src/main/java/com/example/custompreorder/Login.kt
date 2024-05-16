@@ -85,17 +85,33 @@ class Login : AppCompatActivity() {
                 binding.cardView.startAnimation(fadeOutAnim)
                 fadeOutAnim.start()
                 if (task.isSuccessful) {
-                    // Sign in success, update UI with the signed-in user's information
-                    Log.d(TAG, "signInWithEmail:success")
+                    // Simpan token refresh
                     val user = auth.currentUser
-                    Toast.makeText(
-                        baseContext,
-                        "Welcome ${user?.email}",
-                        Toast.LENGTH_SHORT,
-                    ).show()
-                    val intent = Intent(this, Menu::class.java)
-                    startActivity(intent)
-                    finish()
+                    user?.getIdToken(true)?.addOnCompleteListener { tokenTask ->
+                        if (tokenTask.isSuccessful) {
+                            val idToken = tokenTask.result?.token
+                            if (idToken != null) {
+                                saveIdToken(idToken)
+                                // Sign in success, update UI with the signed-in user's information
+                                Log.d(TAG, "signInWithEmail:success")
+                                Toast.makeText(
+                                    baseContext,
+                                    "Welcome ${user?.email}",
+                                    Toast.LENGTH_SHORT,
+                                ).show()
+                                val intent = Intent(this, Menu::class.java)
+                                startActivity(intent)
+                                finish()
+                            }
+                        } else {
+                            Log.w(TAG, "signInWithEmail:failure", tokenTask.exception)
+                            Toast.makeText(
+                                baseContext,
+                                "Authentication failed.",
+                                Toast.LENGTH_SHORT,
+                                ).show()
+                        }
+                    }
                 } else {
                     // If sign in fails, display a message to the user.
                     Log.w(TAG, "signInWithEmail:failure", task.exception)
@@ -106,6 +122,14 @@ class Login : AppCompatActivity() {
                     ).show()
                 }
             }
+    }
+
+    private fun saveIdToken(idToken: String) {
+        val sharedPreferences = getSharedPreferences("MyAppPrefs", MODE_PRIVATE)
+        with(sharedPreferences.edit()) {
+            putString("id_token", idToken)
+            apply()
+        }
     }
 
     companion object {

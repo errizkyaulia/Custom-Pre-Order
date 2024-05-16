@@ -4,15 +4,18 @@ import android.content.Context
 import android.content.Intent
 import android.net.ConnectivityManager
 import android.os.Bundle
+import android.util.Log
 import android.view.View
 import android.view.animation.AnimationUtils
 import android.widget.TextView
+import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import com.google.firebase.Firebase
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.auth.auth
 
 @Suppress("DEPRECATION")
@@ -45,14 +48,14 @@ class MainActivity : AppCompatActivity() {
             runOnUiThread {
                 if (isConnected) {
                     showWelcomeTextWithAnimation()
-                    // Check if user is signed in (non-null) and update UI accordingly.
-                    val currentUser = auth.currentUser
-                    if (currentUser != null) {
-                        val intent = Intent(this, Menu::class.java)
-                        startActivity(intent)
-                        finish()
+
+                    val idToken = getIdToken()
+                    if (idToken != null) {
+                        // Re-authenticate
+                        reAuthenticateUserWithToken(idToken)
+                    } else {
+                        switchToLoginLayout()
                     }
-                    switchToLoginLayout()
                 } else {
                     // Tampilkan pesan kesalahan koneksi atau tindakan lain yang sesuai
                 }
@@ -85,5 +88,55 @@ class MainActivity : AppCompatActivity() {
         val intent = Intent(this, Login::class.java)
         startActivity(intent)
         finish() // Opsional, tergantung pada kebutuhan Anda
+    }
+
+    private fun reAuthenticateUserWithToken(idToken: String) {
+        auth.signInWithCustomToken(idToken)
+            .addOnCompleteListener { task ->
+                if (task.isSuccessful) {
+                    // Setelah login ulang, periksa status akun
+                    checkUserStatus(auth.currentUser)
+                    // LOG Token
+                    val token = auth.currentUser?.getIdToken(true)?.result?.token
+                    Toast.makeText(this, "Token: $token", Toast.LENGTH_SHORT).show()
+                    Log.d("UserStatus", "Token: $token")
+                } else {
+                    // Jika re-authentication gagal, arahkan ke layar login
+                    switchToLoginLayout()
+                }
+            }
+    }
+
+    private fun checkUserStatus(user: FirebaseUser?) {
+        user?.getIdToken(true)?.addOnCompleteListener { task ->
+            if (task.isSuccessful) {
+                val claims = task.result?.claims
+                val isDisabled = claims?.get("disabled") as Boolean? ?: false
+
+                // Toast disabled or no
+                Toast.makeText(this, "Disabled: $isDisabled", Toast.LENGTH_SHORT).show()
+                // LOG ke dalam logcat
+                Log.d("UserStatus", "Disabled: $isDisabled")
+
+                if (isDisabled) {
+                    // Jika akun dinonaktifkan, logout dan arahkan ke layar login
+                    auth.signOut()
+                    switchToLoginLayout()
+                } else {
+                    // Jika akun tidak dinonaktifkan, lanjutkan ke aktivitas utama
+                    val intent = Intent(this, Menu::class.java)
+                    startActivity(intent)
+                    finish()
+                }
+            } else {
+                // Jika gagal memeriksa status akun, arahkan ke layar login
+                switchToLoginLayout()
+            }
+        }
+    }
+
+    private fun getIdToken(): String? {
+        val sharedPreferences = getSharedPreferences("MyAppPrefs", MODE_PRIVATE)
+        return sharedPreferences.getString("id_token", null)
     }
 }
