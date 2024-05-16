@@ -14,10 +14,9 @@ import com.bumptech.glide.Glide
 import com.example.custompreorder.Menu
 import com.example.custompreorder.R
 import com.example.custompreorder.databinding.ActivityCheckoutOrderBinding
-import com.example.custompreorder.ui.profile.ProfileActivity
+import com.example.custompreorder.ui.settings.profile.ProfileActivity
 import com.google.firebase.Timestamp
 import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.storage.FirebaseStorage
 import java.io.ByteArrayOutputStream

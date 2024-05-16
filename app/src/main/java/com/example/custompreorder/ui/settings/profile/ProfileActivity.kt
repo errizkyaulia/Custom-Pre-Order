@@ -1,4 +1,4 @@
-package com.example.custompreorder.ui.profile
+package com.example.custompreorder.ui.settings.profile
 
 import android.app.Activity
 import android.app.AlertDialog

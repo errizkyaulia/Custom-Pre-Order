@@ -13,6 +13,7 @@ import com.bumptech.glide.load.engine.executor.GlideExecutor.UncaughtThrowableSt
 import com.example.custompreorder.R
 import com.example.custompreorder.data.CartItem
 import com.example.custompreorder.ui.home.CheckoutOrder
+import com.example.custompreorder.ui.home.CustomizeOrder
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.storage.FirebaseStorage
 
@@ -179,6 +180,13 @@ class CartAdapter(private var cartItems: List<CartItem>) : RecyclerView.Adapter<
 
         holder.editButton.setOnClickListener {
             // Handle edit button click here
+            val intent = Intent(holder.itemView.context, CustomizeOrder::class.java)
+            // Tambahkan data documentID ke intent
+            intent.putExtra("productId", currentItem.product_id)
+            intent.putExtra("size", currentItem.size)
+            intent.putExtra("qty", currentItem.quantity.toString())
+            intent.putExtra("designUrl", currentItem.designURL)
+            holder.itemView.context.startActivity(intent)
         }
     }
 

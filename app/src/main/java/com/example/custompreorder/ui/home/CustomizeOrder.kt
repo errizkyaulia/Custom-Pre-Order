@@ -48,8 +48,36 @@ class CustomizeOrder : AppCompatActivity() {
         blackColor = ContextCompat.getColor(this, android.R.color.black)
 
         val productId = intent.getStringExtra("productId")
+        val sizeFromCart = intent.getStringExtra("size")
+        if (sizeFromCart != null) {
+            // Set ulang text dari addToCart button menjadi "save cart"
+            binding.addToCart.text = "Save Cart"
+            selectedSize = sizeFromCart
+        }
+
+        val qty = intent.getStringExtra("qty")
+        if (qty != null) {
+            binding.editQty.setText(qty)
+        }
+        val imgUrl = intent.getStringExtra("designUrl")
+        if (imgUrl != "") {
+            binding.cekCostumDesign.isChecked = true
+            Glide.with(this)
+                .load(imgUrl)
+                .into(binding.costumImage)
+        }
+
         loadProduct(productId)
         setupSizeButtons(productId)
+        // Select the button that matches sizeFromCart
+        if (sizeFromCart != null) {
+            when (sizeFromCart) {
+                "S" -> binding.SizeS.performClick()
+                "M" -> binding.SizeM.performClick()
+                "L" -> binding.SizeL.performClick()
+                "XL" -> binding.SizeXL.performClick()
+            }
+        }
         setupQuantityChangeListener()
 
         binding.cekCostumDesign.setOnCheckedChangeListener { _, isChecked ->
@@ -57,6 +85,11 @@ class CustomizeOrder : AppCompatActivity() {
             if (!isChecked) {
                 binding.costumImage.setImageResource(R.drawable.baseline_add_photo_alternate_24)
             } else {
+                if (imgUrl != "") {
+                    Glide.with(this)
+                        .load(imgUrl)
+                        .into(binding.costumImage)
+                }
                 binding.costumImage.setOnClickListener {
                     chooseImage()
                 }

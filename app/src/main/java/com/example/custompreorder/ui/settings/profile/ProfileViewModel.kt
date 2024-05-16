@@ -1,4 +1,4 @@
-package com.example.custompreorder.ui.profile
+package com.example.custompreorder.ui.settings.profile
 
 import androidx.lifecycle.ViewModel
 

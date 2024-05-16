@@ -1,5 +1,6 @@
 package com.example.custompreorder.data
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.content.Intent
 import android.graphics.Color
@@ -9,7 +10,6 @@ import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
-import androidx.cardview.widget.CardView
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 import com.example.custompreorder.R
@@ -49,6 +49,7 @@ class ProductAdapter(private val mContext: Context, private var mProductList: Li
             val intent = Intent(mContext, CustomizeOrder::class.java)
             // Put the product ID as an extra to the Intent
             intent.putExtra("productId", product.id)
+            intent.putExtra("designUrl", "")
             // Start the activity
             mContext.startActivity(intent)
         }
@@ -59,6 +60,7 @@ class ProductAdapter(private val mContext: Context, private var mProductList: Li
     }
 
     // Method to update the list of products in the adapter
+    @SuppressLint("NotifyDataSetChanged")
     fun updateProductList(productList: List<Product>) {
         mProductList = productList
         notifyDataSetChanged() // Notify the adapter that the data has changed
@@ -68,6 +70,5 @@ class ProductAdapter(private val mContext: Context, private var mProductList: Li
         var productImage: ImageView = itemView.findViewById(R.id.productImageData)
         var productName: TextView = itemView.findViewById(R.id.productNameData)
         var availability: TextView = itemView.findViewById(R.id.Availability)
-        var cardView: CardView = itemView.findViewById<CardView>(R.id.productCard)
     }
 }

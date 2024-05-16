@@ -4,7 +4,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".ui.profile.ProfileActivity">
+    tools:context=".ui.settings.profile.ProfileActivity">
 
 
     <androidx.constraintlayout.widget.ConstraintLayout
@@ -76,14 +76,6 @@
                             app:layout_constraintStart_toStartOf="parent"
                             app:layout_constraintTop_toTopOf="parent" />
 
-                        <ImageView
-                            android:id="@+id/imageView2"
-                            android:layout_width="30dp"
-                            android:layout_height="30dp"
-                            android:visibility="gone"
-                            app:srcCompat="@drawable/baseline_photo_camera_24"
-                            tools:layout_editor_absoluteX="60dp"
-                            tools:layout_editor_absoluteY="119dp" />
                     </androidx.constraintlayout.widget.ConstraintLayout>
 
                 </androidx.cardview.widget.CardView>

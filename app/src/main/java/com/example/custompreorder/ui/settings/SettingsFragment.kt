@@ -13,7 +13,7 @@ import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
 import com.example.custompreorder.Login
 import com.example.custompreorder.databinding.FragmentSettingsBinding
-import com.example.custompreorder.ui.profile.ProfileActivity
+import com.example.custompreorder.ui.settings.profile.ProfileActivity
 import com.google.firebase.auth.FirebaseAuth
 
 class SettingsFragment : Fragment() {
