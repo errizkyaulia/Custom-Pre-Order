@@ -5,9 +5,9 @@
     android:id="@+id/cartItems"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_marginStart="20dp"
+    android:layout_marginStart="10dp"
     android:layout_marginTop="10dp"
-    android:layout_marginEnd="20dp"
+    android:layout_marginEnd="10dp"
     android:layout_marginBottom="10dp"
     android:orientation="vertical"
     android:padding="16dp"
@@ -18,13 +18,20 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content">
 
+        <com.google.android.material.floatingactionbutton.FloatingActionButton
+            android:id="@+id/deleteCart"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:clickable="true"
+            android:src="@drawable/baseline_delete_24"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent" />
+
         <ImageView
             android:id="@+id/productImageData"
             android:layout_width="150dp"
             android:layout_height="150dp"
             android:layout_marginStart="10dp"
-            android:layout_marginTop="10dp"
-            android:layout_marginBottom="10dp"
             android:scaleType="centerCrop"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintStart_toStartOf="parent"
@@ -38,10 +45,10 @@
             android:textColor="@color/black"
             android:textSize="16sp"
             android:textStyle="bold"
+            app:layout_constraintBottom_toTopOf="@id/Sizes"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toEndOf="@+id/productImageData"
-            app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintBottom_toTopOf="@id/Sizes" />
+            app:layout_constraintTop_toTopOf="parent" />
 
         <TextView
             android:id="@+id/Sizes"
@@ -51,10 +58,10 @@
             android:textAlignment="center"
             android:textColor="@color/black"
             android:textSize="14sp"
-            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintBottom_toTopOf="@id/productPriceData"
+            app:layout_constraintEnd_toStartOf="@+id/editCart"
             app:layout_constraintStart_toEndOf="@+id/productImageData"
-            app:layout_constraintTop_toBottomOf="@+id/productNameData"
-            app:layout_constraintBottom_toTopOf="@id/productPriceData" />
+            app:layout_constraintTop_toBottomOf="@+id/productNameData" />
 
         <TextView
             android:id="@+id/productPriceData"
@@ -64,10 +71,10 @@
             android:textAlignment="center"
             android:textColor="@color/black"
             android:textSize="14sp"
-            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintBottom_toTopOf="@id/Qty"
+            app:layout_constraintEnd_toStartOf="@+id/editCart"
             app:layout_constraintStart_toEndOf="@+id/productImageData"
-            app:layout_constraintTop_toBottomOf="@+id/Sizes"
-            app:layout_constraintBottom_toTopOf="@id/Qty" />
+            app:layout_constraintTop_toBottomOf="@+id/Sizes" />
 
         <TextView
             android:id="@+id/Qty"
@@ -77,10 +84,11 @@
             android:textAlignment="center"
             android:textColor="@color/black"
             android:textSize="14sp"
+            app:layout_constraintBottom_toTopOf="@id/totalPrice"
             app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintEnd_toStartOf="@+id/deleteCart"
             app:layout_constraintStart_toEndOf="@+id/productImageData"
-            app:layout_constraintTop_toBottomOf="@+id/productPriceData"
-            app:layout_constraintBottom_toTopOf="@id/totalPrice" />
+            app:layout_constraintTop_toBottomOf="@+id/productPriceData" />
 
         <TextView
             android:id="@+id/totalPrice"
@@ -91,9 +99,19 @@
             android:textColor="@color/black"
             android:textSize="14sp"
             app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintEnd_toStartOf="@+id/deleteCart"
             app:layout_constraintStart_toEndOf="@+id/productImageData"
             app:layout_constraintTop_toBottomOf="@+id/Qty" />
+
+        <com.google.android.material.floatingactionbutton.FloatingActionButton
+            android:id="@+id/editCart"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:clickable="true"
+            app:layout_constraintBottom_toTopOf="@+id/deleteCart"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/productNameData"
+            app:srcCompat="@drawable/baseline_create_24" />
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 </androidx.cardview.widget.CardView>

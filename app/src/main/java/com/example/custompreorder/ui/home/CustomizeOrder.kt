@@ -16,6 +16,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.core.widget.addTextChangedListener
+import androidx.lifecycle.lifecycleScope
 import com.bumptech.glide.Glide
 import com.example.custompreorder.R
 import com.example.custompreorder.databinding.ActivityCostomizeOrderBinding
@@ -25,6 +26,8 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.storage.FirebaseStorage
 import java.io.ByteArrayOutputStream
+import kotlinx.coroutines.*
+import kotlinx.coroutines.tasks.await
 
 class CustomizeOrder : AppCompatActivity() {
     private lateinit var binding: ActivityCostomizeOrderBinding
@@ -61,7 +64,21 @@ class CustomizeOrder : AppCompatActivity() {
         }
 
         binding.addToCart.setOnClickListener {
-            addToCart(productId)
+            // Loading Screen and disable buttons
+            binding.progressBar4.visibility = View.VISIBLE
+            binding.addToCart.isEnabled = false
+            binding.CheckOut.isEnabled = false
+
+            lifecycleScope.launch {
+                try {
+                    addToCart(productId)
+                } finally {
+                    // Hide progress bar and enable buttons
+                    binding.progressBar4.visibility = View.GONE
+                    binding.addToCart.isEnabled = true
+                    binding.CheckOut.isEnabled = true
+                }
+            }
         }
 
         binding.CheckOut.setOnClickListener {
@@ -284,8 +301,7 @@ class CustomizeOrder : AppCompatActivity() {
         }
     }
 
-    private fun addToCart(productId: String?) {
-
+    private suspend fun addToCart(productId: String?) {
         if (selectedSize == null) {
             Toast.makeText(this, "Please select a size", Toast.LENGTH_SHORT).show()
             return
@@ -303,19 +319,16 @@ class CustomizeOrder : AppCompatActivity() {
         if (costumeDesign){
             val costumeImage = binding.costumImage.drawable as? BitmapDrawable
             if (costumeImage != null) {
-                uploadCostumeImage(productId, costumeImage.bitmap) { imageUrl ->
-                    designURL = imageUrl
-                    addToCartWithDesign(productId, userId, quantity, designURL, selectedSize!!)
-                }
+                designURL = uploadCostumeImage(productId, costumeImage.bitmap)
             } else {
                 Toast.makeText(this, "Please select a costume image", Toast.LENGTH_SHORT).show()
+                return
             }
-        } else {
-            addToCartWithDesign(productId, userId, quantity, designURL, selectedSize!!)
         }
+        addToCartWithDesign(productId, userId, quantity, designURL, selectedSize!!)
     }
 
-    private fun uploadCostumeImage(productId: String?, bitmap: Bitmap, callback: (String) -> Unit) {
+    private suspend fun uploadCostumeImage(productId: String?, bitmap: Bitmap): String = withContext(Dispatchers.IO) {
         val storageRef = FirebaseStorage.getInstance().reference
         val imageRefCart = storageRef.child("image/design/${FirebaseAuth.getInstance().currentUser?.uid}/cart/$productId/$selectedSize.jpg")
 
@@ -323,26 +336,12 @@ class CustomizeOrder : AppCompatActivity() {
         bitmap.compress(Bitmap.CompressFormat.JPEG, 100, baos)
         val data = baos.toByteArray()
 
-        val uploadTask = imageRefCart.putBytes(data)
-        uploadTask.continueWithTask { task ->
-            if (!task.isSuccessful) {
-                task.exception?.let {
-                    throw it
-                }
-            }
-            imageRefCart.downloadUrl
-        }.addOnCompleteListener { task ->
-            if (task.isSuccessful) {
-                val downloadUri = task.result
-                val imageUrl = downloadUri.toString()
-                callback(imageUrl)
-            } else {
-                Toast.makeText(this, "Failed to upload costume image", Toast.LENGTH_SHORT).show()
-            }
-        }
+        val uploadTask = imageRefCart.putBytes(data).await()
+        val downloadUri = imageRefCart.downloadUrl.await()
+        return@withContext downloadUri.toString()
     }
 
-    private fun addToCartWithDesign(productId: String?, userId: String?, quantity: Int, designURL: String, selectedSize: String) {
+    private suspend fun addToCartWithDesign(productId: String?, userId: String?, quantity: Int, designURL: String, selectedSize: String) = withContext(Dispatchers.IO) {
         // Siapkan data yang akan dimasukkan
         val cartItem = hashMapOf(
             "date" to Timestamp.now(),
@@ -359,47 +358,45 @@ class CustomizeOrder : AppCompatActivity() {
         val cartRef = db.collection("cart")
 
         // Cari dokumen di Firestore dengan kondisi yang diberikan
-        cartRef.whereEqualTo("user_id", userId)
-            .whereEqualTo("product_id", productId)
-            .whereEqualTo("size", selectedSize)
-            .get()
-            .addOnSuccessListener { documents ->
-                if (documents.isEmpty) {
-                    // Jika tidak ada dokumen yang cocok, buat dokumen baru
-                    cartRef.add(cartItem)
-                        .addOnSuccessListener {
-                            Toast.makeText(this, "New Item added to cart", Toast.LENGTH_SHORT).show()
-                            Log.d(TAG, "DocumentSnapshot added with ID: ${it.id}")
-                            val intent = Intent(this, Cart::class.java)
-                            startActivity(intent)
-                            finish()
-                        }
-                        .addOnFailureListener { e ->
-                            // Gagal menambahkan dokumen baru
-                            Log.w(TAG, "Error adding document", e)
-                            Toast.makeText(this, "Failed to add item to cart", Toast.LENGTH_SHORT).show()
-                        }
-                } else {
-                    // Jika dokumen yang cocok ditemukan, perbarui jumlahnya
-                    val doc = documents.documents[0] // Ambil dokumen pertama yang cocok
-                    val currentQuantity = doc.getLong("quantity") ?: 0
+        try {
+            val documents = cartRef.whereEqualTo("user_id", userId)
+                .whereEqualTo("product_id", productId)
+                .whereEqualTo("size", selectedSize)
+                .get()
+                .await()
 
-                    // Tampilkan dialog konfirmasi untuk memperbarui item
-                    val builder = AlertDialog.Builder(this)
+            if (documents.isEmpty) {
+                // Jika tidak ada dokumen yang cocok, buat dokumen baru
+                cartRef.add(cartItem).  await()
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(this@CustomizeOrder, "New Item added to cart", Toast.LENGTH_SHORT).show()
+                    val intent = Intent(this@CustomizeOrder, Cart::class.java)
+                    startActivity(intent)
+                    finish()
+                }
+            } else {
+                // Jika dokumen yang cocok ditemukan, perbarui jumlahnya
+                val doc = documents.documents[0] // Ambil dokumen pertama yang cocok
+                val currentQuantity = doc.getLong("quantity") ?: 0
+
+                // Tampilkan dialog konfirmasi untuk memperbarui item
+                withContext(Dispatchers.Main) {
+                    val builder = AlertDialog.Builder(this@CustomizeOrder)
                     builder.setTitle("Update Cart Item")
                         .setMessage("Do you want to update the quantity of this item? From: $currentQuantity to $quantity")
                         .setPositiveButton("Yes") { _, _ ->
                             // Pengguna menekan tombol Yes, lakukan pembaruan
-                            doc.reference.update(cartItem as Map<String, Any>)
-                                .addOnSuccessListener {
-                                    Toast.makeText(this, "Your cart has been updated", Toast.LENGTH_SHORT).show()
-                                    val intent = Intent(this, Cart::class.java)
+                            lifecycleScope.launch {
+                                try {
+                                    doc.reference.update(cartItem as Map<String, Any>).await()
+                                    Toast.makeText(this@CustomizeOrder, "Your cart has been updated", Toast.LENGTH_SHORT).show()
+                                    val intent = Intent(this@CustomizeOrder, Cart::class.java)
                                     startActivity(intent)
                                     finish()
+                                } catch (e: Exception) {
+                                    Toast.makeText(this@CustomizeOrder, "Failed to update item quantity", Toast.LENGTH_SHORT).show()
                                 }
-                                .addOnFailureListener { e ->
-                                    Toast.makeText(this, "Failed to update item quantity", Toast.LENGTH_SHORT).show()
-                                }
+                            }
                         }
                         .setNegativeButton("No") { _, _ ->
                             // Pengguna menekan tombol No, tidak lakukan apa-apa
@@ -408,11 +405,13 @@ class CustomizeOrder : AppCompatActivity() {
                         .show()
                 }
             }
-            .addOnFailureListener { e ->
+        } catch (e: Exception) {
+            withContext(Dispatchers.Main) {
                 // Gagal melakukan pencarian dokumen
                 Log.w(TAG, "Error getting documents: ", e)
-                Toast.makeText(this, "Failed to retrieve cart items", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this@CustomizeOrder, "Failed to retrieve cart items", Toast.LENGTH_SHORT).show()
             }
+        }
     }
 
     companion object {

@@ -1,3 +1,4 @@
+import android.app.AlertDialog
 import android.content.Intent
 import android.util.Log
 import android.view.LayoutInflater
@@ -8,10 +9,12 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
+import com.bumptech.glide.load.engine.executor.GlideExecutor.UncaughtThrowableStrategy.LOG
 import com.example.custompreorder.R
 import com.example.custompreorder.data.CartItem
 import com.example.custompreorder.ui.home.CheckoutOrder
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.storage.FirebaseStorage
 
 class CartAdapter(private var cartItems: List<CartItem>) : RecyclerView.Adapter<CartAdapter.CartViewHolder>() {
 
@@ -115,6 +118,68 @@ class CartAdapter(private var cartItems: List<CartItem>) : RecyclerView.Adapter<
             }
             holder.itemView.context.startActivity(intent)
         }
+
+        holder.deleteButton.setOnClickListener {
+            // Handle delete button click here
+            // Get the document ID of the item to be deleted
+            val documentId = currentItem.documentId
+
+            // Alret Dialog
+            val alertDialogBuilder = AlertDialog.Builder(holder.itemView.context)
+            alertDialogBuilder.setTitle("Delete Item")
+            alertDialogBuilder.setMessage("Are you sure you want to delete this item?")
+            alertDialogBuilder.setPositiveButton("Yes") { _, _ ->
+                // Delete the item from Firestore
+                val dbDel = FirebaseFirestore.getInstance()
+                dbDel.collection("cart")
+                    .document(documentId)
+                    .delete()
+                    .addOnSuccessListener {
+                        // if document has costume design
+                        if (currentItem.designURL != "") {
+                            //Delete Picture from Storage, getting reference from designURL
+                            val storageRef = FirebaseStorage.getInstance().getReferenceFromUrl(currentItem.designURL)
+                            storageRef.delete()
+                                .addOnSuccessListener {
+                                    Log.d(LOG.toString(), "Costume image deleted successfully")
+                                } .addOnFailureListener { e ->
+                                    Log.e(LOG.toString(), "Failed to delete Costume image $e")
+                                    // Handle failure to delete the item
+                                    Toast.makeText(
+                                        holder.itemView.context,
+                                        "Failed to delete Costume image",
+                                        Toast.LENGTH_SHORT
+                                    ).show()
+                                }
+                        }
+                        // Remove the item from the adapter's list
+                        cartItems = cartItems.filter { it.documentId != documentId }
+                        notifyDataSetChanged()
+                        Toast.makeText(
+                            holder.itemView.context,
+                            "Item deleted successfully",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }
+                    .addOnFailureListener { e ->
+                        Log.e(LOG.toString(), "Error deleting item: $e")
+                        // Handle failure to delete the item
+                        Toast.makeText(
+                            holder.itemView.context,
+                            "Failed to delete item",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }
+            }.setNegativeButton("No") { dialog, _ ->
+                    dialog.dismiss()
+            }
+            val alertDialog = alertDialogBuilder.create()
+            alertDialog.show()
+        }
+
+        holder.editButton.setOnClickListener {
+            // Handle edit button click here
+        }
     }
 
     override fun getItemCount(): Int {
@@ -134,5 +199,7 @@ class CartAdapter(private var cartItems: List<CartItem>) : RecyclerView.Adapter<
         val productPriceTextView: TextView = itemView.findViewById(R.id.productPriceData)
         val qtyTextView: TextView = itemView.findViewById(R.id.Qty)
         val totalPriceTextView: TextView = itemView.findViewById(R.id.totalPrice)
+        val deleteButton: ImageView = itemView.findViewById(R.id.deleteCart)
+        val editButton: ImageView = itemView.findViewById(R.id.editCart)
     }
 }
