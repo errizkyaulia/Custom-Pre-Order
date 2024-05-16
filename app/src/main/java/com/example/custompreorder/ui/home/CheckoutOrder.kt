@@ -14,6 +14,7 @@ import com.bumptech.glide.Glide
 import com.example.custompreorder.Menu
 import com.example.custompreorder.R
 import com.example.custompreorder.databinding.ActivityCheckoutOrderBinding
+import com.example.custompreorder.ui.profile.ProfileActivity
 import com.google.firebase.Timestamp
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.DocumentSnapshot
@@ -118,12 +119,31 @@ class CheckoutOrder : AppCompatActivity() {
                     binding.cekoutFullName.setText(name)
                     binding.cekoutPhoneNumber.setText(phone)
                     binding.cekoutAddress.setText(address)
+
+                    // Jika tidak ada data, ingatkan untuk mengupdate Profile data
+                    if (name == "" || phone == "" || address == "") {
+                        // Make alret dialog confirmation, if yes redirect to ProfileActivity if no do nothing
+                        val builder = android.app.AlertDialog.Builder(this)
+                        builder.setTitle("Warning")
+                        builder.setMessage("Please update your Profile data")
+                        builder.setPositiveButton("Update") { _, _ ->
+                            val intent = Intent(this, ProfileActivity::class.java)
+                            startActivity(intent)
+                        }
+                        builder.setNegativeButton("Cancel") { _, _ ->
+                            // Do nothing
+                            Toast.makeText(this, "Please update your Profile data", Toast.LENGTH_SHORT).show()
+                        }
+                        builder.show()
+                    }
                 }
             }
             .addOnFailureListener { exception ->
                 // Log error
                 Log.e(TAG, "Error getting documents: ", exception)
             }
+
+
     }
 
     private fun uploadCheckOutImage(bitmap: Bitmap, transactionId: String, callback: (String) -> Unit) {
@@ -173,6 +193,12 @@ class CheckoutOrder : AppCompatActivity() {
         val phone = binding.cekoutPhoneNumber.text.toString()
         val address = binding.cekoutAddress.text.toString()
         val notes = binding.editNotes.text.toString()
+
+        // Check if any field is empty
+        if (name.isEmpty() || phone.isEmpty() || address.isEmpty()) {
+            Toast.makeText(this, "Please fill in all fields", Toast.LENGTH_SHORT).show()
+            return
+        }
 
         // Generate a new transaction ID
         val transactionId = db.collection("transactions").document().id
@@ -231,6 +257,7 @@ class CheckoutOrder : AppCompatActivity() {
                                     finish()
                                 }
                                 .addOnFailureListener { e ->
+                                    Toast.makeText(this, "Error updating your custom design", Toast.LENGTH_SHORT).show()
                                     Log.e(TAG, "Error updating custom design URL", e)
                                 }
                         }
