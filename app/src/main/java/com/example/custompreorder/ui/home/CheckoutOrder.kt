@@ -252,8 +252,16 @@ class CheckoutOrder : AppCompatActivity() {
                                     Log.d(TAG, "Custom design URL updated successfully")
                                     Toast.makeText(this, "Transaction with Costume Image added successfully", Toast.LENGTH_SHORT).show()
                                     val intentMenu = Intent(this, Menu::class.java)
+                                    intentMenu.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK)
                                     startActivity(intentMenu)
+                                    // Finish the CheckoutOrder activity
                                     finish()
+                                    // Finish CustomizeOrder activity
+                                    val cuzId = intent.getIntExtra("customizeOrderId", 0)
+                                    if (cuzId != 0) {
+                                        Log.d(TAG, "Finish CustomizeOrder activity $cuzId")
+                                        finishActivity(cuzId)
+                                    }
                                 }
                                 .addOnFailureListener { e ->
                                     Toast.makeText(this, "Error updating your custom design", Toast.LENGTH_SHORT).show()

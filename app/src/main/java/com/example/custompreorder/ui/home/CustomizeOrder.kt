@@ -115,6 +115,8 @@ class CustomizeOrder : AppCompatActivity() {
         }
 
         binding.CheckOut.setOnClickListener {
+            val customizeOrderId = System.identityHashCode(this)
+
             if (selectedSize == null) {
                 Toast.makeText(this, "Please select a size", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
@@ -136,6 +138,7 @@ class CustomizeOrder : AppCompatActivity() {
                 return@setOnClickListener
             }
             val intent = Intent(this, CheckoutOrder::class.java)
+            intent.putExtra("customizeOrderId", customizeOrderId)
             intent.putExtra("productId", productId)
             intent.putExtra("name", binding.productName.text.toString())
             intent.putExtra("size", selectedSize)
